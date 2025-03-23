@@ -1,0 +1,12 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  ReminderLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: "TripReminderLambda"
+      Runtime: python3.9
+      Role: arn:aws:iam::123456789012:role/LambdaExecutionRole
+      Handler: lambda_function.lambda_handler
+      Code:
+        S3Bucket: my-lambda-bucket
+        S3Key: lambda_function.zip

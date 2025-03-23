@@ -1,0 +1,35 @@
+<!-- /home/ec2-user/environment/My_App/reminder_project/events/templates/events/reminder_list.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="text-center mb-4">Your Reminders</h2>
+
+    {% if message %}
+        <div class="alert alert-success">
+            <p>{{ message }}</p>
+        </div>
+    {% endif %}
+
+    <!-- Form to submit the city selection -->
+    <form method="POST" action="{% url 'create_reminder_external_api' %}">
+        {% csrf_token %}
+        <!-- Dropdown for city selection -->
+        <div class="form-group">
+            <select id="city" name="city" class="form-control">
+                <option value="">Select a city</option>
+                <option value="Mumbai">Mumbai</option>
+                <option value="Delhi">Delhi</option>
+                <option value="Bangalore">Bangalore</option>
+                <option value="Chennai">Chennai</option>
+                <option value="Kolkata">Kolkata</option>
+            </select>
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit" class="btn btn-primary mt-3">Submit</button>
+    </form>
+
+    <a href="{% url 'dashboard' %}" class="btn btn-secondary mt-3">Back to Dashboard</a>
+</div>
+{% endblock %}

@@ -1,0 +1,49 @@
+<!-- /home/ec2-user/environment/My_App/reminder_project/events/templates/events/reminder_list.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="text-center mb-4">Your Reminders</h2>
+
+    {% if messages %}
+        <div class="alert alert-info">
+            {% for message in messages %}
+                <p>{{ message }}</p>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    {% if reminders %}
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Due Date & Time</th>
+                    <th>Message</th>
+                    <th>Completed</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for reminder in reminders %}
+                    <tr>
+                        <td>{{ reminder.due_date }}</td>
+                        <td>{{ reminder.note }}</td>
+                        <td>{{ reminder.is_completed|yesno:"Yes,No" }}</td>
+                        <td>
+                            <a href="{% url 'reminder_edit' reminder.id %}" class="btn btn-warning btn-sm">Edit</a>
+                            <a href="{% url 'reminder_delete' reminder.id %}" class="btn btn-danger btn-sm">Delete</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="text-center">No reminders found. <a href="{% url 'create_reminder' %}">Create one now</a>.</p>
+    {% endif %}
+
+    <div class="text-center">
+        <a href="{% url 'create_reminder' %}" class="btn btn-primary mt-3">Add New Reminder</a>
+        <a href="{% url 'dashboard' %}" class="btn btn-secondary mt-3">Back to Dashboard</a>
+    </div>
+</div>
+{% endblock %}

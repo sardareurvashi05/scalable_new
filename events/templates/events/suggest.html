@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Event Suggestions</h2>
+
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Find Events</button>
+</form>
+
+{% if suggestions %}
+    <h3>Suggested Events:</h3>
+    <ul>
+        {% for event in suggestions %}
+            <li>
+                <strong>{{ event.name }}</strong> - {{ event.location }} 
+                (<a href="{{ event.add_to_calendar_url }}">Add to Calendar</a>)
+            </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p>No events found. Try a different search.</p>
+{% endif %}
+
+<h3>All Events</h3>
+<table border="1">
+    <thead>
+        <tr>
+            <th>Event Name</th>
+            <th>Location</th>
+            <th>Category</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for country, events in dummy_data.items %}
+            {% for event in events %}
+                <tr>
+                    <td>{{ event }}</td>
+                    <td>{{ country }}</td>
+                    <td>Festival</td>
+                </tr>
+            {% endfor %}
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

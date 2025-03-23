@@ -1,0 +1,14 @@
+<!-- /home/ec2-user/environment/My_App/reminder_project/events/templates/events/reminder_confirm_delete.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Delete Reminder</h2>
+    <p>Are you sure you want to delete "{{ reminder.note }}" scheduled for {{ reminder.due_date }}?</p>
+    <form method="POST">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Yes, Delete</button>
+        <a href="{% url 'reminders' %}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+{% endblock %}

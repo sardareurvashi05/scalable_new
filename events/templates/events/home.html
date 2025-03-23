@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Events</title>
+</head>
+<body>
+    <h1>Events</h1>
+    
+    <div id="events-list">
+        <!-- Events will be dynamically inserted here -->
+    </div>
+
+    <script>
+        // Fetch data from the events API
+        fetch('/api/events/')
+            .then(response => response.json())
+            .then(data => {
+                // Get the container where you want to display the events
+                const eventsList = document.getElementById('events-list');
+                
+                // Clear any existing events (if any)
+                eventsList.innerHTML = '';
+                
+                // Loop through the data and display each event
+                data.forEach(event => {
+                    // Create a new div for each event
+                    const eventDiv = document.createElement('div');
+                    eventDiv.classList.add('event');
+                    
+                    // Add the event name and location to the div
+                    eventDiv.innerHTML = `<strong>${event.name}</strong> - ${event.location}`;
+                    
+                    // Append the event div to the events list
+                    eventsList.appendChild(eventDiv);
+                });
+            })
+            .catch(error => {
+                console.error('Error fetching events:', error);
+            });
+    </script>
+</body>
+</html>

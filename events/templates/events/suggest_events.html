@@ -1,0 +1,12 @@
+<!-- /home/ec2-user/environment/My_App/reminder_project/events/templates/events/suggest_events.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Suggested Events</h2>
+    <p>Welcome to the home page!</p>
+    <a href="{% url 'reminders' %}" class="btn btn-primary">View Reminders</a>
+    <a href="{% url 'create_reminder' %}" class="btn btn-secondary">Create Reminder</a>
+    <a href="{% url 'suggest_events' %}" class="btn btn-info">Suggest Events</a> <!-- Corrected if it was 'suggest' -->
+</div>
+{% endblock %}

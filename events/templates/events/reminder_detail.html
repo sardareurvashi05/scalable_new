@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h2>{{ reminder.title }}</h2>
+    <p>{{ reminder.description }}</p>
+    <p>Scheduled: {{ reminder.scheduled_time }}</p>
+    <p>Created: {{ reminder.created_at }}</p>
+    <form method="post" action="{% url 'reminder_delete' reminder.id %}">
+        {% csrf_token %}
+        <button type="submit">Delete</button>
+    </form>
+    <a href="{% url 'reminders' %}">Back to List</a>
+{% endblock %}
