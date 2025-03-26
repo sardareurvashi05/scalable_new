@@ -11,7 +11,7 @@ import os
 
 from django.core.wsgi import get_wsgi_application
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'reminder_project.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'event_suggestions.settings')
 #os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'scalable_new.settings')
 
 application = get_wsgi_application()
