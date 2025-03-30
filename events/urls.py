@@ -1,12 +1,13 @@
 from django.urls import path
 from . import views
 from .views import fetch_events
-from .views import event_list_api, event_by_country_api,home
+from .views import event_list_api, event_by_country_api,home,fetch_trip_details
 
 urlpatterns = [
     path('', views.suggest_events, name='home'),
     path('get_events/', views.get_events, name='get_events'),
-    path('create_reminder_external_api/', views.create_reminder_external_api, name='create_reminder_external_api'),# 
+    path('fetch-trip-details/', views.fetch_trip_details, name='fetch_trip_details'),
+    #path('create_reminder_external_api/', views.create_reminder_external_api, name='create_reminder_external_api'),# 
     path('suggest_events/', views.suggest_events, name='suggest_events'),
     path('reminders/', views.reminders, name='reminders'),  # Use views.reminder_list
     path('login/', views.login_view, name='login'),

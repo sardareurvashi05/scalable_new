@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="text-center mb-4">Your Reminders</h2>
+
+    <!-- Button to fetch trip details -->
+    <button id="fetchDetailsBtn" class="btn btn-primary mt-3">Fetch Trip Details</button>
+
+    <!-- Modal for showing trip details -->
+    <div id="tripDetailsModal" class="modal" tabindex="-1" role="dialog">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Trip Details</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <!-- Table to display trip details -->
+            <table id="tripDetailsTable" class="table">
+              <thead>
+                <tr>
+                  <th>Trip Title</th>
+                  <th>Username</th>
+                  <th>Start Date</th>
+                  <th>End Date</th>
+                  <th>Email</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Dynamic content will be inserted here -->
+              </tbody>
+            </table>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+</div>
+
+<!-- JavaScript for AJAX request and modal functionality -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    $(document).ready(function() {
+        // Handle click event on the fetch button
+        $('#fetchDetailsBtn').click(function() {
+            // Make an AJAX request to fetch the trip details
+            $.ajax({
+                url: "{% url 'fetch_trip_details' %}",
+                method: 'GET',
+                success: function(response) {
+                    // Get the trip details from the response
+                    const trips = response.trips;
+
+                    // Clear the table before adding new data
+                    $('#tripDetailsTable tbody').empty();
+
+                    // Loop through each trip and add a new row in the table
+                    trips.forEach(trip => {
+                        const newRow = `
+                            <tr>
+                                <td>${trip.tripTitle}</td>
+                                <td>${trip.username}</td>
+                                <td>${trip.startDate}</td>
+                                <td>${trip.endDate}</td>
+                                <td>${trip.email}</td>
+                            </tr>
+                        `;
+                        $('#tripDetailsTable tbody').append(newRow);
+                    });
+
+                    // Show the modal
+                    $('#tripDetailsModal').modal('show');
+                },
+                error: function(error) {
+                    alert('Failed to fetch data. Please try again later.');
+                }
+            });
+        });
+    });
+</script>
+
+<!-- Bootstrap JS and CSS for modal functionality -->
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+{% endblock %}

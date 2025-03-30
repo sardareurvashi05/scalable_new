@@ -14,7 +14,6 @@ SECRET_KEY = 'django-insecure-y()w7y*!vjn4wiv-kpvkq68^x82djdx@_@6)7h@)u(@kz(@l1e
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']
-#ALLOWED_HOSTS = ['x22235248ReminderEnv.eba-3pjdti7y.us-east-1.elasticbeanstalk.com']
 
 
 # Application definition

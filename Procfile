@@ -1,0 +1,1 @@
+web: gunicorn 'event_suggestions.wsgi.application'

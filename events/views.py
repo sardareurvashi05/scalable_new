@@ -58,7 +58,24 @@ def create_reminder_external_api_old(request):
 
     return render(request, "events/create_reminder_external_api.html", context)
 
-def create_reminder_external_api(request):
+def fetch_trip_details(request):
+    # URL of the external API
+    api_url = "https://1csykikez9.execute-api.us-east-1.amazonaws.com/prod/detail?userId=user1&title=Mumbai"
+    
+    try:
+        # Make the API request
+        response = requests.get(api_url)
+        
+        if response.status_code == 200:
+            # Return the JSON data received from the external API
+            api_data = response.json()
+            return JsonResponse(api_data)
+        else:
+            return JsonResponse({"error": "Failed to fetch data"}, status=500)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+"""def create_reminder_external_api(request):
     if request.method == 'POST':
         # Get the selected city from the form
         city = request.POST.get('city')
@@ -98,7 +115,7 @@ def create_reminder_external_api(request):
         }
 
     # Render the HTML template with the context
-    return render(request, "events/create_reminder_external_api.html", context)
+    return render(request, "events/create_reminder_external_api.html", context)"""
 
 def test_mail(request):
     try:
