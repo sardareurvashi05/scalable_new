@@ -1,1 +1,1 @@
-web: gunicorn 'event_suggestions.wsgi.application'
+web: gunicorn 'event_suggestions.wsgi:application'
