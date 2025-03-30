@@ -1,7 +1,7 @@
 from django.urls import path
 from . import views
 from .views import fetch_events
-from .views import event_list_api, event_by_country_api,home
+from .views import event_list_api, event_by_country_api,home,create_reminder_external_api
 
 urlpatterns = [
     path('', views.suggest_events, name='home'),
