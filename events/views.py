@@ -15,6 +15,7 @@ from urllib.parse import urlencode
 from dotenv import load_dotenv
 import os
 from django.urls import reverse
+from django.urls import reverse
 import json
 import re
 import requests
@@ -40,6 +41,7 @@ from . import views  # Import views from the current directory (event_suggestion
 # Load environment variables
 load_dotenv()
 
+@login_required(login_url='/login/')
 def create_reminder_api(request):
     if request.method == 'POST':
         # Extract the necessary data from the POST request
@@ -79,6 +81,7 @@ def create_reminder_api(request):
                 user=user,  # Associate the reminder with the user
                 due_date=due_date,  # Set the due date as the trip's end date
                 note=f"Reminder for the trip: {trip_title}",
+                email=email,  # Ensure the email is added
             )
 
             messages.success(request, f'Reminder for trip "{trip_title}" created successfully!')
@@ -89,10 +92,13 @@ def create_reminder_api(request):
             messages.error(request, f'No user found with username: {username}')
             return redirect(reverse('fetch_trip_details'))  # Redirect to fetch_trip_details if user not found
 
-        return redirect(reverse('fetch_trip_details'))
-
     # If the method is not POST, redirect to the fetch_trip_details page
     return redirect(reverse('fetch_trip_details'))
+@login_required
+def reminder_list(request):
+    # Fetch all reminders for the logged-in user or apply a different filter if needed
+    reminders = Reminder.objects.filter(user=request.user)
+    return render(request, 'events/reminders.html', {'reminders': reminders})
     
 def create_reminder_external_api_old(request):
     api_data = {
@@ -140,47 +146,6 @@ def fetch_trip_details(request):
     # Pass the trip data (and error message if any) to the template
     return render(request, "events/fetch_trip_details.html", {'trip_data': trip_data})
         
-"""def create_reminder_external_api(request):
-    if request.method == 'POST':
-        # Get the selected city from the form
-        city = request.POST.get('city')
-
-        if city:
-            # Construct the API URL using the city data
-            api_url = f"https://1csykikez9.execute-api.us-east-1.amazonaws.com/prod/detail?userId=user1&title={city}"
-
-            # Make the API request to fetch data
-            response = requests.get(api_url)
-
-            if response.status_code == 200:
-                # If the API call is successful, get the JSON data
-                api_data = response.json()
-
-                # Pass the API data to the function that creates reminders
-                create_reminder_from_api_data(api_data)
-
-                # Prepare the success message
-                context = {
-                    "message": "Reminders created successfully!"
-                }
-            else:
-                # Handle errors if the API call fails
-                context = {
-                    "message": "Failed to fetch data from the external API."
-                }
-        else:
-            # If no city is selected, return an error message
-            context = {
-                "message": "Please select a city."
-            }
-    else:
-        # If the request method is not POST
-        context = {
-            "message": "Invalid request. Please submit the form."
-        }
-
-    # Render the HTML template with the context
-    return render(request, "events/create_reminder_external_api.html", context)"""
 
 def test_mail(request):
     try:
@@ -289,30 +254,38 @@ API_GATEWAY_URL = "https://<your-api-id>.execute-api.<region>.amazonaws.com/prod
 def create_reminder(request):
     if request.method == 'POST':
         user_input = request.POST.get('note', '')
-        print("1.................")
-        # Use Google NLP to extract entities
+
+        # Extract entities using Google NLP
         entities = analyze_text(user_input)
-        print("2.................")
-        # Extract date/time from entities (or fallback to default parsing logic)
+
+        # Extract email from user input
+        email = extract_email(user_input)
+        if not email:
+            messages.error(request, "Email is required to create a reminder.")
+            return redirect('create_reminder')
+
+        # Extract date/time from entities or parse manually
         reminder_time = parse_date_from_entities(entities, user_input)
-        
-        print(reminder_time, user_input)
-        
+
         if reminder_time:
-            # Store the reminder in the database
+            # Create and save the reminder
             reminder = Reminder.objects.create(
-                note =user_input,
-                due_date =reminder_time,
-                user = request.user
+                note=user_input,
+                due_date=reminder_time,
+                user=request.user,
+                email=email
             )
-            
             messages.success(request, "Reminder created successfully!")
             return redirect('dashboard')
-            
         else:
-            messages.error(request, "Error creating reminder. Check your input.")
-    # Handle the GET request and render the form
+            messages.error(request, "Could not determine a valid date. Please enter a valid reminder date.")
+
     return render(request, 'events/create_reminder.html')
+
+def extract_email(text):
+    email_pattern = r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
+    match = re.search(email_pattern, text)
+    return match.group(0) if match else None
 
 @login_required(login_url='/login/')
 def create_reminder_1(request):
@@ -361,21 +334,45 @@ def reminders(request):
     reminders = Reminder.objects.filter(user=request.user)  # Get user's reminders
     return render(request, 'events/reminders.html', {'reminders': reminders})
 
+def update_reminder(request, reminder_id):
+    reminder = get_object_or_404(Reminder, id=reminder_id)
 
-@login_required(login_url='/login/')
-def reminder_edit(request, reminder_id):
-    reminder = get_object_or_404(Reminder, id=reminder_id, user=request.user)
-    if request.method == 'POST':
+    if request.method == "POST":
         form = ReminderForm(request.POST, instance=reminder)
+
         if form.is_valid():
-            form.save()
+            # Print values for debugging purposes
+            print("Updated email:", form.cleaned_data['email'])
+            reminder = form.save(commit=False)
+            reminder.save()  # Save the changes to the database
             messages.success(request, "Reminder updated successfully!")
-            return redirect('reminders')
+            return redirect('events/reminders')
         else:
-            messages.error(request, "Error updating reminder. Check your input.")
-            print(form.errors)
+            messages.error(request, "Error updating reminder. Please check your input.")
+
     else:
         form = ReminderForm(instance=reminder)
+
+    return render(request, "events/reminders.html", {"form": form})
+    
+@login_required(login_url='/login/')
+def reminder_edit(request, reminder_id):
+    reminder = get_object_or_404(Reminder, id=reminder_id)
+
+    if request.method == 'POST':
+        form = ReminderForm(request.POST, instance=reminder)
+        
+        if form.is_valid():
+            reminder = form.save(commit=False)  # Save the instance without committing to DB yet
+            reminder.save()  # Commit the changes to the database
+            messages.success(request, "Reminder updated successfully!")  # Display success message
+            return redirect('events/reminders')  # Redirect back to the list of reminders
+        else:
+            messages.error(request, "Please correct the errors below.")  # In case of form validation errors
+
+    else:
+        form = ReminderForm(instance=reminder)  # Initialize form with existing data
+
     return render(request, 'events/reminder_edit.html', {'form': form, 'reminder': reminder})
    
 def register(request):
@@ -441,57 +438,44 @@ def get_events(request):
     return JsonResponse(formatted_events, safe=False)
 
 
-# Function to parse date and time from entities text
 def parse_date_from_entities(entities, text):
     today = datetime.today()
     tomorrow = today + timedelta(days=1)
 
-    # Loop through the entities and check for specific date-related terms
     for entity in entities:
-        print(f"Entity: {entity['name']}, Type: {entity['type']}")  # Debug: Print each entity
-
-        if entity['type'] == 'DATE':  # If a date entity is found
+        if entity['type'] == 'DATE':
             entity_text = entity['name'].lower()
-
             if 'today' in entity_text:
                 return today
             elif 'tomorrow' in entity_text:
                 return tomorrow
             elif 'next' in entity_text:
-                # Handle "next" term (e.g., "next Monday")
                 return parse_next_day(entity_text, today)
 
-    # Handle direct date expressions like "today" or "tomorrow"
     if "today" in text.lower():
         return today
     elif "tomorrow" in text.lower():
         return tomorrow
-
-    # Check for "next Monday", "next Tuesday", etc.
-    if "next" in text.lower():
+    elif "next" in text.lower():
         return parse_next_day(text.lower(), today)
 
-    # Try parsing time directly from the text (e.g., "3 PM" or "9:00 AM")
-    time_match = re.search(r'(\d{1,2}:\d{2}\s?[APap][Mm]|[APap][Mm]\s?\d{1,2})', text)
+    time_match = re.search(r'(\d{1,2}:\d{2}\s?[APap][Mm])', text)
     if time_match:
         time_str = time_match.group(0)
         try:
-            reminder_time = datetime.strptime(time_str, "%I:%M %p")  # Parse time like "3:00 PM"
+            reminder_time = datetime.strptime(time_str, "%I:%M %p")
             reminder_time = reminder_time.replace(year=today.year, month=today.month, day=today.day)
             return reminder_time
         except ValueError:
-            pass  # Continue if time parsing fails
+            pass
 
-    # Try parsing explicit date formats (e.g., "10th April 2025")
     date_match = re.search(r'(\d{1,2}[a-z]{2}\s+[A-Za-z]+(?:\s+\d{4})?)', text)
     if date_match:
         date_str = date_match.group(0)
         try:
-            # Parse date like "10th April 2025" or "10 April 2025"
             parsed_date = datetime.strptime(date_str, "%d %B %Y")
             return parsed_date
         except ValueError:
-            # Try parsing with ordinal suffixes removed (e.g., "10th" -> "10")
             date_str = re.sub(r'(\d+)(st|nd|rd|th)', r'\1', date_str)
             try:
                 parsed_date = datetime.strptime(date_str, "%d %B %Y")
@@ -499,33 +483,23 @@ def parse_date_from_entities(entities, text):
             except ValueError:
                 pass
 
-    # If no date or time-related entity is found, return None
     return None
 
-# Helper function to parse "next <day>"
 def parse_next_day(text, today):
     days_of_week = {
-        "monday": 0,
-        "tuesday": 1,
-        "wednesday": 2,
-        "thursday": 3,
-        "friday": 4,
-        "saturday": 5,
-        "sunday": 6
+        "monday": 0, "tuesday": 1, "wednesday": 2, "thursday": 3,
+        "friday": 4, "saturday": 5, "sunday": 6
     }
 
     for day, day_num in days_of_week.items():
         if day in text:
             today_weekday = today.weekday()
-            # Calculate how many days until the next occurrence of the given day
             days_diff = (day_num - today_weekday + 7) % 7
             if days_diff == 0:
-                days_diff = 7  # If it's today, go to the next week
-
+                days_diff = 7  
             next_day = today + timedelta(days=days_diff)
             return next_day
 
-    # If no matching day was found, return None
     return None
     
 @login_required(login_url='/login/')

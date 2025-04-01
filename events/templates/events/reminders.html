@@ -1,4 +1,3 @@
-<!-- /home/ec2-user/environment/My_App/reminder_project/events/templates/events/reminder_list.html -->
 {% extends "base.html" %}
 
 {% block content %}
@@ -13,29 +12,41 @@
     {% endif %}
 
     {% if reminders %}
-        <table class="table table-striped">
-            <thead>
-                <tr>
-                    <th>Due Date & Time</th>
-                    <th>Message</th>
-                    <th>Completed</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for reminder in reminders %}
+        <div class="table-responsive">  <!-- Makes table scrollable on small screens -->
+            <table class="table table-striped">
+                <thead>
                     <tr>
-                        <td>{{ reminder.due_date }}</td>
-                        <td>{{ reminder.note }}</td>
-                        <td>{{ reminder.is_completed|yesno:"Yes,No" }}</td>
-                        <td>
-                            <a href="{% url 'reminder_edit' reminder.id %}" class="btn btn-warning btn-sm">Edit</a>
-                            <a href="{% url 'reminder_delete' reminder.id %}" class="btn btn-danger btn-sm">Delete</a>
-                        </td>
+                        <th>Due Date & Time</th>
+                        <th>Message</th>
+                        <th>Email Address</th>  <!-- Added Email Column -->
+                        <th>Completed</th>
+                        <th>Actions</th>
                     </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    {% for reminder in reminders %}
+                        <tr>
+                            <td>{{ reminder.due_date }}</td>
+                            <td>
+                                <div class="text-truncate" style="max-width: 250px;" title="{{ reminder.note }}">
+                                    {{ reminder.note }}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="text-truncate" style="max-width: 200px;" title="{{ reminder.email }}">
+                                    {{ reminder.email }}
+                                </div>
+                            </td>
+                            <td>{{ reminder.is_completed|yesno:"Yes,No" }}</td>
+                            <td>
+                                <a href="{% url 'reminder_edit' reminder.id %}" class="btn btn-warning btn-sm">Edit</a>
+                                <a href="{% url 'reminder_delete' reminder.id %}" class="btn btn-danger btn-sm">Delete</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     {% else %}
         <p class="text-center text-primary">No reminders pending for today.</p>
     {% endif %}
@@ -46,4 +57,20 @@
         <a href="{% url 'test_mail' %}" class="btn btn-info mt-3">Send Reminder</a>
     </div>
 </div>
+
+<!-- Add custom styles -->
+<style>
+    .table td, .table th {
+        white-space: nowrap; /* Prevents wrapping */
+        overflow: hidden;
+        text-overflow: ellipsis; /* Shows "..." for long text */
+    }
+    .text-truncate {
+        display: inline-block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+</style>
+
 {% endblock %}

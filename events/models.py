@@ -5,13 +5,14 @@ User = get_user_model()
 
 class Reminder(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    due_date = models.DateTimeField()
+    due_date = models.DateTimeField(null=True, blank=True) 
     note = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     is_completed = models.BooleanField(default=False)
+    email = models.EmailField(null=True, blank=True)
 
     def __str__(self):
-        return f"Reminder at {self.due_date}"
+        fields = ['note', 'due_date', 'email', 'is_completed']
        
 """class Event(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)  # Added ForeignKey to link with User
