@@ -10,5 +10,4 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('events.urls')),  # Include events/urls.py at root level
     path('events_api/', fetch_events, name='fetch_events'),
-    path('email/', test_mail, name='test_mail'),
 ]

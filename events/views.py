@@ -14,11 +14,13 @@ from rest_framework import viewsets
 from urllib.parse import urlencode
 from dotenv import load_dotenv
 import os
+from django.urls import reverse
 import json
 import re
 import requests
 import pytz
 from datetime import datetime, timedelta
+from django.utils.timezone import now, timedelta
 
 # Google API imports
 import google.auth
@@ -38,7 +40,60 @@ from . import views  # Import views from the current directory (event_suggestion
 # Load environment variables
 load_dotenv()
 
+def create_reminder_api(request):
+    if request.method == 'POST':
+        # Extract the necessary data from the POST request
+        username = request.POST.get('username')
+        trip_title = request.POST.get('tripTitle')
+        start_date = request.POST.get('startDate')
+        end_date_str = request.POST.get('endDate')
+        email = request.POST.get('email')
 
+        try:
+            # If no end date is provided, show an error and redirect
+            if not end_date_str:
+                messages.error(request, 'End date (due date) is required for the trip.')
+                return redirect(reverse('fetch_trip_details'))  # Redirect to fetch_trip_details if no due date
+
+            # Ensure the date is in the correct format
+            try:
+                # Convert the end date to date-only format and set time to 00:00:00
+                due_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+                due_date = due_date.replace(hour=0, minute=0, second=0)  # Set the time to 00:00:00
+            except ValueError:
+                # If the format is incorrect, show an error message
+                messages.error(request, 'Invalid date format for due date. Please use YYYY-MM-DD.')
+                return redirect(reverse('fetch_trip_details'))  # Redirect if the date format is incorrect
+
+        except Exception as e:
+            messages.error(request, f'Error fetching trip details: {e}')
+            return redirect(reverse('fetch_trip_details'))  # Redirect back if an error occurs
+
+        # Now let's create the reminder
+        try:
+            # Fetch the user by the provided username
+            user = User.objects.get(username=username)
+
+            # Create the reminder with the provided due_date (end_date)
+            reminder = Reminder.objects.create(
+                user=user,  # Associate the reminder with the user
+                due_date=due_date,  # Set the due date as the trip's end date
+                note=f"Reminder for the trip: {trip_title}",
+            )
+
+            messages.success(request, f'Reminder for trip "{trip_title}" created successfully!')
+            return redirect(reverse('reminders'))  # Redirect to reminders.html if the reminder is created successfully
+
+        except User.DoesNotExist:
+            # If the user doesn't exist, show an error message and redirect
+            messages.error(request, f'No user found with username: {username}')
+            return redirect(reverse('fetch_trip_details'))  # Redirect to fetch_trip_details if user not found
+
+        return redirect(reverse('fetch_trip_details'))
+
+    # If the method is not POST, redirect to the fetch_trip_details page
+    return redirect(reverse('fetch_trip_details'))
+    
 def create_reminder_external_api_old(request):
     api_data = {
         "trips": [
@@ -58,24 +113,34 @@ def create_reminder_external_api_old(request):
 
     return render(request, "events/create_reminder_external_api.html", context)
 
-"""def fetch_trip_details(request):
-    # URL of the external API
-    api_url = "https://1csykikez9.execute-api.us-east-1.amazonaws.com/prod/detail?userId=user1&title=Mumbai"
-    
-    try:
-        # Make the API request
-        response = requests.get(api_url)
-        
-        if response.status_code == 200:
-            # Return the JSON data received from the external API
-            api_data = response.json()
-            return JsonResponse(api_data)
-        else:
-            return JsonResponse({"error": "Failed to fetch data"}, status=500)
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)"""
+def fetch_trip_details(request):
+    username = request.GET.get('username')
+    trip_title = request.GET.get('tripTitle')
 
-def create_reminder_external_api(request):
+    # Check if both parameters are provided
+    if username and trip_title:
+        # Make the API request with username and tripTitle as parameters
+        api_url = f"https://1csykikez9.execute-api.us-east-1.amazonaws.com/prod/detail?userId={username}&title={trip_title}"
+        try:
+            response = requests.get(api_url)
+
+            if response.status_code == 200:
+                data = response.json()
+                trip_data = {
+                    "trips": data.get('trips', [])
+                }
+            else:
+                trip_data = {"trips": [], "error": "Failed to fetch trip details."}
+        except Exception as e:
+            trip_data = {"trips": [], "error": f"Error occurred: {str(e)}"}
+        
+    else:
+        trip_data = {"trips": [], "error": "Username and Trip Title are required."}
+
+    # Pass the trip data (and error message if any) to the template
+    return render(request, "events/fetch_trip_details.html", {'trip_data': trip_data})
+        
+"""def create_reminder_external_api(request):
     if request.method == 'POST':
         # Get the selected city from the form
         city = request.POST.get('city')
@@ -115,9 +180,44 @@ def create_reminder_external_api(request):
         }
 
     # Render the HTML template with the context
-    return render(request, "events/create_reminder_external_api.html", context)
+    return render(request, "events/create_reminder_external_api.html", context)"""
 
 def test_mail(request):
+    try:
+        # Get T-1 date
+        #t_minus_1 = now() + timedelta(days=7)
+        t_minus_1 = now()
+        # Query for reminders due tomorrow
+        reminders = Reminder.objects.filter(due_date__date=t_minus_1.date(), is_completed=False)
+        if not reminders:
+            messages.info(request, "No reminders pending for today.")  # Add message
+        
+        for reminder in reminders:
+            email_message = {
+                "email": reminder.user.email,  # Sending to user's email
+                "subject": "Upcoming Reminder Event",
+                "body": f"Reminder: {reminder.note} is due on {reminder.due_date}.",
+            }
+            print(email_message)
+
+            # Send email to SQS
+            message_body = json.dumps(email_message)
+            response = send_message_to_sqs(message_body)
+            print(response)
+
+            # Send actual email via API Gateway/SNS
+            status_code = sendEmail()
+            print(f"Status code: {status_code} ")
+            reminder.is_completed = True
+            reminder.save()
+        
+    except Exception as e:
+        print(f"Error in send_t_minus_1_email: {e}")
+        #return HttpResponse("Failed to send T-1 emails", status=500)
+    reminders = Reminder.objects.filter(user=request.user)
+    return render(request, 'events/reminders.html', {'reminders': reminders})
+        
+def test_mail_old():
     try:
         # Prepare email data
         email_message = {
@@ -319,48 +419,7 @@ SCOPES = ['https://www.googleapis.com/auth/calendar']
 def get_events(request):
     """Fetches and displays all events on the front page"""
     # Your dummy data for events
-    dummy_data = {
-        "USA": [
-            "New Year's Eve in NYC", "Coachella Music Festival", "Comic-Con San Diego",
-            "Burning Man", "SXSW Festival", "Mardi Gras in New Orleans", "Lollapalooza",
-            "The Masters Golf Tournament", "Kentucky Derby", "CES Las Vegas", 
-            "Ultra Music Festival", "Electric Daisy Carnival", "Nashville Country Music Festival"
-        ],
-        "India": [
-            "Diwali Festival", "Holi Festival", "Jaipur Literature Festival",
-            "Kumbh Mela", "Pushkar Camel Fair", "Durga Puja", "Goa Carnival",
-            "Sunburn Festival", "Rath Yatra", "Onam Festival", 
-            "India Art Fair", "Jaisalmer Desert Festival", "Hornbill Festival"
-        ],
-        "Japan": [
-            "Cherry Blossom Festival", "Gion Matsuri", "Tokyo Game Show",
-            "Sumo Wrestling Tournament", "Osaka Castle Festival", "Sapporo Snow Festival",
-            "Fuji Rock Festival", "Awa Odori Dance Festival", "Nebuta Matsuri", "Tanabata Festival",
-            "Tokyo International Film Festival", "Hakata Gion Yamakasa", "Sanja Matsuri"
-        ],
-        "Germany": [
-            "Oktoberfest", "Berlin International Film Festival", "Christmas Markets",
-            "Cologne Carnival", "Wacken Open Air", "Frankfurt Book Fair",
-            "Stuttgart Beer Festival", "Dresden Music Festival", "Hamburg DOM", "Berlin Marathon",
-            "Cannstatter Volksfest", "Kiel Week", "Rheinkirmes Düsseldorf"
-        ],
-        "Brazil": [
-            "Carnival in Rio", "Rock in Rio", "São Paulo Fashion Week",
-            "Oktoberfest Blumenau", "Parintins Folklore Festival", "Lollapalooza Brazil",
-            "Festival de Parintins", "Rio Film Festival", "Festa Junina", "New Year's Eve at Copacabana",
-            "Bumba Meu Boi", "Festival de Cinema de Gramado", "Passion Play of Nova Jerusalem"
-        ],
-        "France": [
-            "Cannes Film Festival", "Tour de France", "Bastille Day Celebrations",
-            "Nice Carnival", "Paris Fashion Week", "Fête de la Musique",
-            "Avignon Theatre Festival", "Champs-Elysées Christmas Market", "Lyon Festival of Lights", "24 Hours of Le Mans"
-        ],
-        "Australia": [
-            "Sydney New Year's Eve Fireworks", "Australian Open", "Sydney Mardi Gras",
-            "Melbourne Cup", "Splendour in the Grass", "Vivid Sydney Festival",
-            "Byron Bay Bluesfest", "Adelaide Fringe Festival", "Dark Mofo Festival", "Perth Festival"
-        ]
-    }
+   
 
     # Get the 'country' query parameter
     country = request.GET.get('country')

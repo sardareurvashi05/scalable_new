@@ -10,7 +10,7 @@ def sendEmail():
     credentials = session.get_credentials().get_frozen_credentials()
     aws_auth = AWS4Auth(credentials.access_key, credentials.secret_key, region, service, session_token=credentials.token)
     
-    url = "https://obo5xji15i.execute-api.us-east-1.amazonaws.com/prod/sendemail"
+    url = "https://e0qpmfrxf2.execute-api.us-east-1.amazonaws.com/prod/sendemail"
     
     try:
         response = requests.get(url, auth=aws_auth)

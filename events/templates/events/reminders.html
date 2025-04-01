@@ -5,12 +5,11 @@
 <div class="container mt-5">
     <h2 class="text-center mb-4">Your Reminders</h2>
 
+    <!-- Display Django Messages -->
     {% if messages %}
-        <div class="alert alert-info">
-            {% for message in messages %}
-                <p>{{ message }}</p>
-            {% endfor %}
-        </div>
+        {% for message in messages %}
+            <p class="text-success text-center">{{ message }}</p>
+        {% endfor %}
     {% endif %}
 
     {% if reminders %}
@@ -38,12 +37,13 @@
             </tbody>
         </table>
     {% else %}
-        <p class="text-center">No reminders found. <a href="{% url 'create_reminder' %}">Create one now</a>.</p>
+        <p class="text-center text-primary">No reminders pending for today.</p>
     {% endif %}
 
     <div class="text-center">
         <a href="{% url 'create_reminder' %}" class="btn btn-primary mt-3">Add New Reminder</a>
         <a href="{% url 'dashboard' %}" class="btn btn-secondary mt-3">Back to Dashboard</a>
+        <a href="{% url 'test_mail' %}" class="btn btn-info mt-3">Send Reminder</a>
     </div>
 </div>
 {% endblock %}

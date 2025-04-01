@@ -4,87 +4,62 @@
 <div class="container mt-5">
     <h2 class="text-center mb-4">Your Reminders</h2>
 
-    <!-- Button to fetch trip details -->
-    <button id="fetchDetailsBtn" class="btn btn-primary mt-3">Fetch Trip Details</button>
-
-    <!-- Modal for showing trip details -->
-    <div id="tripDetailsModal" class="modal" tabindex="-1" role="dialog">
-      <div class="modal-dialog" role="document">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">Trip Details</h5>
-            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-              <span aria-hidden="true">&times;</span>
-            </button>
-          </div>
-          <div class="modal-body">
-            <!-- Table to display trip details -->
-            <table id="tripDetailsTable" class="table">
-              <thead>
-                <tr>
-                  <th>Trip Title</th>
-                  <th>Username</th>
-                  <th>Start Date</th>
-                  <th>End Date</th>
-                  <th>Email</th>
-                </tr>
-              </thead>
-              <tbody>
-                <!-- Dynamic content will be inserted here -->
-              </tbody>
-            </table>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-          </div>
+    <!-- Input fields for Username and Trip Title -->
+    <form method="get" action="{% url 'fetch_trip_details' %}" class="mb-4">
+        <div class="form-row">
+            <div class="form-group col-md-6">
+                <label for="username">Username</label>
+                <input type="text" name="username" id="username" class="form-control" placeholder="Enter Username" required>
+            </div>
+            <div class="form-group col-md-6">
+                <label for="tripTitle">Trip Title</label>
+                <input type="text" name="tripTitle" id="tripTitle" class="form-control" placeholder="Enter Trip Title" required>
+            </div>
         </div>
-      </div>
-    </div>
+
+        <button type="submit" class="btn btn-primary mt-3">Fetch Trip Details</button>
+    </form>
+
+    <!-- Table for displaying trip details -->
+    {% if trip_data.trips %}
+    <h3 class="mt-5">Trip Details</h3>
+    <table class="table table-striped mt-3">
+        <thead>
+            <tr>
+                <th>Trip Title</th>
+                <th>Username</th>
+                <th>Start Date</th>
+                <th>End Date</th>
+                <th>Email</th>
+                <th>Action</th> <!-- Add an action column for reminder creation -->
+            </tr>
+        </thead>
+        <tbody>
+            {% for trip in trip_data.trips %}
+            <tr>
+                <td>{{ trip.tripTitle }}</td>
+                <td>{{ trip.username }}</td>
+                <td>{{ trip.startDate }}</td>
+                <td>{{ trip.endDate }}</td>
+                <td>{{ trip.email }}</td>
+                <td>
+                    <!-- Create Reminder Button -->
+                    <form method="post" action="{% url 'create_reminder_api' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="username" value="{{ trip.username }}">
+                        <input type="hidden" name="tripTitle" value="{{ trip.tripTitle }}">
+                        <input type="hidden" name="startDate" value="{{ trip.startDate }}">
+                        <input type="hidden" name="endDate" value="{{ trip.endDate }}">
+                        <input type="hidden" name="email" value="{{ trip.email }}">
+                        <button type="submit" class="btn btn-success btn-sm">Create Reminder</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="text-center text-muted">No trip details available or failed to fetch data.</p>
+    {% endif %}
 </div>
-
-<!-- JavaScript for AJAX request and modal functionality -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script>
-    $(document).ready(function() {
-        // Handle click event on the fetch button
-        $('#fetchDetailsBtn').click(function() {
-            // Make an AJAX request to fetch the trip details
-            $.ajax({
-                url: "{% url 'fetch_trip_details' %}",
-                method: 'GET',
-                success: function(response) {
-                    // Get the trip details from the response
-                    const trips = response.trips;
-
-                    // Clear the table before adding new data
-                    $('#tripDetailsTable tbody').empty();
-
-                    // Loop through each trip and add a new row in the table
-                    trips.forEach(trip => {
-                        const newRow = `
-                            <tr>
-                                <td>${trip.tripTitle}</td>
-                                <td>${trip.username}</td>
-                                <td>${trip.startDate}</td>
-                                <td>${trip.endDate}</td>
-                                <td>${trip.email}</td>
-                            </tr>
-                        `;
-                        $('#tripDetailsTable tbody').append(newRow);
-                    });
-
-                    // Show the modal
-                    $('#tripDetailsModal').modal('show');
-                },
-                error: function(error) {
-                    alert('Failed to fetch data. Please try again later.');
-                }
-            });
-        });
-    });
-</script>
-
-<!-- Bootstrap JS and CSS for modal functionality -->
-<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 {% endblock %}
