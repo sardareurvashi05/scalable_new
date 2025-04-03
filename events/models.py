@@ -13,6 +13,7 @@ class Reminder(models.Model):
 
     def __str__(self):
         fields = ['note', 'due_date', 'email', 'is_completed']
+        
        
 """class Event(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)  # Added ForeignKey to link with User

@@ -94,10 +94,12 @@ def create_reminder_api(request):
 
     # If the method is not POST, redirect to the fetch_trip_details page
     return redirect(reverse('fetch_trip_details'))
-@login_required
+
 def reminder_list(request):
     # Fetch all reminders for the logged-in user or apply a different filter if needed
     reminders = Reminder.objects.filter(user=request.user)
+    print("Inside Reminder list")
+    print(request.user)
     return render(request, 'events/reminders.html', {'reminders': reminders})
     
 def create_reminder_external_api_old(request):
@@ -331,7 +333,9 @@ def reminder_delete(request, reminder_id):
     
 @login_required(login_url='/login/')
 def reminders(request):
-    reminders = Reminder.objects.filter(user=request.user)  # Get user's reminders
+    reminders = Reminder.objects.filter(user=request.user)# Get user's reminders
+    print("inside reminder")
+    print(reminders)
     return render(request, 'events/reminders.html', {'reminders': reminders})
 
 def update_reminder(request, reminder_id):
@@ -366,7 +370,7 @@ def reminder_edit(request, reminder_id):
             reminder = form.save(commit=False)  # Save the instance without committing to DB yet
             reminder.save()  # Commit the changes to the database
             messages.success(request, "Reminder updated successfully!")  # Display success message
-            return redirect('events/reminders')  # Redirect back to the list of reminders
+            return render(request, "events/reminders.html", {"form": form})  # Redirect back to the list of reminders
         else:
             messages.error(request, "Please correct the errors below.")  # In case of form validation errors
 
